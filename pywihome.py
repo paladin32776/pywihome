@@ -58,7 +58,7 @@ class WiHome(object):
 
 wh = WiHome()
 while True:
-    time.sleep(4)
+    time.sleep(5)
     while wh.isrx():
         print(["POP: ", wh.read()])
     pass
