@@ -5,6 +5,7 @@ Gernot Fattinger
 import logging
 import signal
 import random
+import json
 from pywihome import WiHome
 
 from pyhap.accessory import Accessory, Bridge
@@ -94,9 +95,19 @@ def get_bridge(driver, wihome=None):
     # bridge.add_accessory(FakeFan(driver, 'Big Fan'))
     # bridge.add_accessory(GarageDoor(driver, 'Garage'))
     # bridge.add_accessory(TemperatureSensor(driver, 'Sensor'))
-    bridge.add_accessory(WiHomeSwitch(driver, 'Switch0', wihome=wihome, client='wihomeDEV1', channel=0))
-    bridge.add_accessory(WiHomeSwitch(driver,'Switch1', wihome=wihome, client='wihomeDEV2', channel=0))
-    bridge.add_accessory(WiHomeSwitch(driver, 'Switch2', wihome=wihome, client='wihomeDEV2', channel=1))
+
+    f=open('wihome.json')
+    accs=json.loads(f.read())
+    f.close()
+
+    for acc in accs:
+        if acc['accessory']=='WiHomeSwitch':
+            for inst in acc['instances']:
+               bridge.add_accessory(WiHomeSwitch(driver, inst['label'], wihome=wihome, client=inst['client'], channel=inst['channel']))
+
+    # bridge.add_accessory(WiHomeSwitch(driver, 'Switch0', wihome=wihome, client='wihomeDEV1', channel=0))
+    # bridge.add_accessory(WiHomeSwitch(driver,'Switch1', wihome=wihome, client='wihomeDEV2', channel=0))
+    # bridge.add_accessory(WiHomeSwitch(driver, 'Switch2', wihome=wihome, client='wihomeDEV2', channel=1))
     return bridge
 
 

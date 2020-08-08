@@ -1,0 +1,11 @@
+[
+  {
+    "accessory": "WiHomeSwitch",
+    "instances":
+    [
+      {"label": "Switch0", "client": "wihomeDEV1", "channel": 0},
+      {"label": "Switch1", "client": "wihomeDEV2", "channel": 0},
+      {"label": "Switch2", "client": "wihomeDEV2", "channel": 1}
+    ]
+  }
+]

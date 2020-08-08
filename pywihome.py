@@ -49,7 +49,7 @@ class WiHome(object):
             time.sleep(0.010)
             # Receive into self.rxq or fill device table:
             data, addr = self.so.recvfrom(4096)
-            msg = json.loads(data)
+            msg = json.loads(data.decode("utf-8"))
             ip = addr[0]
             logging.info('RX:(' + ip + '):' + json.dumps(msg))
             if 'cmd' in msg and msg['cmd'] == 'findhub':
