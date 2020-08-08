@@ -20,27 +20,75 @@ from pyhap.const import (CATEGORY_FAN,
 logging.basicConfig(level=logging.INFO, format="[%(module)s] %(message)s")
 
 
-class TemperatureSensor(Accessory):
-    """Fake Temperature sensor, measuring every 3 seconds."""
+# class TemperatureSensor(Accessory):
+#     """Fake Temperature sensor, measuring every 3 seconds."""
+#
+#     category = CATEGORY_SENSOR
+#
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#
+#         serv_temp = self.add_preload_service('TemperatureSensor')
+#         self.char_temp = serv_temp.configure_char('CurrentTemperature')
+#
+#     @Accessory.run_at_interval(3)
+#     async def run(self):
+#         self.char_temp.set_value(random.randint(18, 26))
 
-    category = CATEGORY_SENSOR
+# class GarageDoor(Accessory):
+#     """Fake garage door."""
+#
+#     category = CATEGORY_GARAGE_DOOR_OPENER
+#
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#
+#         self.add_preload_service('GarageDoorOpener')\
+#             .configure_char(
+#                 'TargetDoorState', setter_callback=self.change_state)
+#
+#     def change_state(self, value):
+#         logging.info("Bulb value: %s", value)
+#         self.get_service('GarageDoorOpener')\
+#             .get_characteristic('CurrentDoorState')\
+#             .set_value(value)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
-        serv_temp = self.add_preload_service('TemperatureSensor')
-        self.char_temp = serv_temp.configure_char('CurrentTemperature')
+def strip_prefix(string, prefix=''):
+    """
+    Helper function strip a prefix off a string
+    """
+    if string.startswith(prefix):
+        return string[len(prefix):]
+    return string
 
-    @Accessory.run_at_interval(3)
-    async def run(self):
-        self.char_temp.set_value(random.randint(18, 26))
 
-class GarageDoor(Accessory):
-    """Fake garage door."""
+def pop_parameters_by_prefix(parameter_dict=None, prefix=None):
+    """
+    Helper function to extract all entries from a dictionary, where
+    the key starts with the string in prefix.
+    Entries are removed from original dict, and function returns a
+    new dict with the extracted entries.
+    """
+    if prefix is None:
+        return {}
+    keys = [key for key in parameter_dict if key.startswith(prefix)]
+    return {strip_prefix(key, prefix): parameter_dict.pop(key) for key in keys}
+
+
+def wihome_parameters_valid(wihome):
+    if 'instance' in wihome and 'client' in wihome and wihome['instance'] is not None and wihome['client'] is not None:
+        return True
+    return False
+
+
+class WiHomeGateOpener(Accessory):
+    # WiHome Gate Opener
 
     category = CATEGORY_GARAGE_DOOR_OPENER
 
     def __init__(self, *args, **kwargs):
+
         super().__init__(*args, **kwargs)
 
         self.add_preload_service('GarageDoorOpener')\
@@ -53,61 +101,55 @@ class GarageDoor(Accessory):
             .get_characteristic('CurrentDoorState')\
             .set_value(value)
 
+
 class WiHomeSwitch(Accessory):
     # WiHome Switch
     category = CATEGORY_SWITCH
 
     def __init__(self, *args, **kwargs):
-        self.wihome = None
-        if 'wihome' in kwargs:
-            self.wihome = kwargs.pop('wihome')
-        self.client = None
-        if 'client' in kwargs:
-            self.client = kwargs.pop('client')
-        self.channel = 0
-        if 'channel' in kwargs:
-            self.channel = kwargs.pop('channel')
+
+        self.wihome = pop_parameters_by_prefix(kwargs, 'wihome_')
         super().__init__(*args, **kwargs)
 
         serv_switch = self.add_preload_service('Switch')
-        self.display = serv_switch.configure_char(
-            'On', setter_callback=self.set_state)
+        self.display = serv_switch.configure_char('On', setter_callback=self.set_state)
 
-        if self.wihome is not None and self.client is not None:
-            self.wihome.attach_rx_event_callback(callback=self.state_changed,
-                                                 filter={'client': self.client, 'cmd':'info',
-                                                         'parameter': 'relay', 'channel': self.channel})
+        if wihome_parameters_valid(self.wihome):
+            self.wihome['instance'].attach_rx_event_callback(callback=self.state_changed,
+                                                             filter={'cmd': 'info',
+                                                                     'parameter': 'relay',
+                                                                     'channel': self.wihome['channel'],
+                                                                     'client': self.wihome['client']})
 
     def set_state(self, value):
-        if self.wihome is not None and self.client is not None:
-            self.wihome.write({'client': self.client, 'cmd': 'set',
-                               'parameter': 'relay', 'channel': self.channel,
-                               'value': value})
-        logging.info("Set switch %s value: %d" % (self.client, value))
+        if wihome_parameters_valid(self.wihome):
+            self.wihome['instance'].write({'cmd': 'set',
+                                           'parameter': 'relay',
+                                           'channel': self.wihome['channel'],
+                                           'value': value,
+                                           'client': self.wihome['client']})
+            logging.info("Set switch %s value: %d" % (self.wihome['client'], value))
 
     def state_changed(self, msg):
         self.get_service('Switch').get_characteristic('On').set_value(msg['value'])
-        logging.info("Switch %s state changed: %d" % (self.client, msg['value']))
+        if wihome_parameters_valid(self.wihome):
+            logging.info("Switch %s state changed: %d" % (self.wihome['client'], msg['value']))
 
-def get_bridge(driver, wihome=None):
+
+def get_bridge(_driver, wihome=None):
     bridge = Bridge(driver, 'Bridge')
-    # bridge.add_accessory(LightBulb(driver, 'Lightbulb'))
-    # bridge.add_accessory(FakeFan(driver, 'Big Fan'))
-    # bridge.add_accessory(GarageDoor(driver, 'Garage'))
-    # bridge.add_accessory(TemperatureSensor(driver, 'Sensor'))
 
-    f=open('wihome.json')
-    accs=json.loads(f.read())
+    f = open('wihome.json')
+    accs = json.loads(f.read())
     f.close()
 
     for acc in accs:
-        if acc['accessory']=='WiHomeSwitch':
+        if acc['accessory'] == 'WiHomeSwitch':
             for inst in acc['instances']:
-               bridge.add_accessory(WiHomeSwitch(driver, inst['label'], wihome=wihome, client=inst['client'], channel=inst['channel']))
+                bridge.add_accessory(WiHomeSwitch(_driver, inst['homekit_label'], wihome_instance=wihome,
+                                                  wihome_client=inst['wihome_client'],
+                                                  wihome_channel=inst['wihome_channel']))
 
-    # bridge.add_accessory(WiHomeSwitch(driver, 'Switch0', wihome=wihome, client='wihomeDEV1', channel=0))
-    # bridge.add_accessory(WiHomeSwitch(driver,'Switch1', wihome=wihome, client='wihomeDEV2', channel=0))
-    # bridge.add_accessory(WiHomeSwitch(driver, 'Switch2', wihome=wihome, client='wihomeDEV2', channel=1))
     return bridge
 
 

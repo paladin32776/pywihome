@@ -3,9 +3,9 @@
     "accessory": "WiHomeSwitch",
     "instances":
     [
-      {"label": "Switch0", "client": "wihomeDEV1", "channel": 0},
-      {"label": "Switch1", "client": "wihomeDEV2", "channel": 0},
-      {"label": "Switch2", "client": "wihomeDEV2", "channel": 1}
+      {"homekit_label": "Switch0", "wihome_client": "wihomeDEV1", "wihome_channel": 0},
+      {"homekit_label": "Switch1", "wihome_client": "wihomeDEV2", "wihome_channel": 0},
+      {"homekit_label": "Switch2", "wihome_client": "wihomeDEV2", "wihome_channel": 1}
     ]
   }
 ]
