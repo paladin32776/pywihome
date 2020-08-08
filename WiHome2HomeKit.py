@@ -1,4 +1,6 @@
-"""Starts a fake fan, lightbulb, garage door and a TemperatureSensor
+"""WiHome2Homekit V0.1
+Gernot Fattinger
+2020-08-07
 """
 import logging
 import signal
@@ -88,14 +90,13 @@ class WiHomeSwitch(Accessory):
 
 def get_bridge(driver, wihome=None):
     bridge = Bridge(driver, 'Bridge')
-
     # bridge.add_accessory(LightBulb(driver, 'Lightbulb'))
     # bridge.add_accessory(FakeFan(driver, 'Big Fan'))
     # bridge.add_accessory(GarageDoor(driver, 'Garage'))
     # bridge.add_accessory(TemperatureSensor(driver, 'Sensor'))
+    bridge.add_accessory(WiHomeSwitch(driver, 'Switch0', wihome=wihome, client='wihomeDEV1', channel=0))
     bridge.add_accessory(WiHomeSwitch(driver,'Switch1', wihome=wihome, client='wihomeDEV2', channel=0))
     bridge.add_accessory(WiHomeSwitch(driver, 'Switch2', wihome=wihome, client='wihomeDEV2', channel=1))
-
     return bridge
 
 
