@@ -4,7 +4,10 @@ import threading
 import time
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(message)s'))
+logger.addHandler(handler)
 
 class WiHome(object):
 
@@ -27,19 +30,19 @@ class WiHome(object):
         self.rx_callback_events = []
 
         # Starting separate thread for handling and queuing incomimg WiHome messages:
-        logging.info('Starting WiHome background RX thread.')
+        logger.info('Starting WiHome background RX thread.')
         rxthread = threading.Thread(target=self.rxloop, args=())
         rxthread.daemon = True  # Daemonize thread
         rxthread.start()
 
         # Starting separate thread for launching rx handler function if RX queue contains message:
-        logging.info('Starting WiHome background RX callback function thread.')
+        logger.info('Starting WiHome background RX callback function thread.')
         rx_callback_thread = threading.Thread(target=self.rx_callback, args=())
         rx_callback_thread.daemon = True  # Daemonize thread
         rx_callback_thread.start()
 
         # Starting separate thread for sending queued outgoing WiHome messages:
-        logging.info('Starting WiHome background TX thread.')
+        logger.info('Starting WiHome background TX thread.')
         txthread = threading.Thread(target=self.txloop, args=())
         txthread.daemon = True  # Daemonize thread
         txthread.start()
@@ -51,14 +54,14 @@ class WiHome(object):
             data, addr = self.so.recvfrom(4096)
             msg = json.loads(data.decode("utf-8"))
             ip = addr[0]
-            logging.info('RX:(' + ip + '):' + json.dumps(msg))
+            logger.debug('RX:(' + ip + '):' + json.dumps(msg))
             if 'cmd' in msg and msg['cmd'] == 'findhub':
-                logging.info("Responding to findhub request.")
+                logger.debug("Responding to findhub request.")
                 msg['cmd'] = 'hubid'
                 self._sendto(msg, ip)
                 self.devs[msg['client']] = ip
             elif 'cmd' in msg and msg['cmd'] == 'clientid':
-                logging.info("Received clientid.")
+                logger.debug("Received clientid.")
                 self.devs[msg['client']] = ip
             elif 'cmd' in msg and msg['cmd'] == 'findclient':
                 pass
@@ -76,7 +79,7 @@ class WiHome(object):
                     callback = rx_callback_event['callback']
                     fits = all([fkey in msg and msg[fkey]==fvalue for fkey, fvalue in filters.items()])
                     if fits:
-                        logging.info('RX callback to ' + callback.__name__ + '.')
+                        logger.info('RX callback to ' + callback.__name__ + '.')
                         callback(msg)
 
     def txloop(self):
@@ -90,7 +93,7 @@ class WiHome(object):
                         self.send_findclient(msg['client'])
                         txq.append(msg)
                     else:
-                        logging.info('TX:(' + self.devs[msg['client']] + '):' + json.dumps(msg))
+                        logger.info('TX:(' + self.devs[msg['client']] + '):' + json.dumps(msg))
                         self._sendto(msg, self.devs[msg['client']])
                 self.txq = txq
 
@@ -105,7 +108,7 @@ class WiHome(object):
 
     def send_findclient(self, client):
         if self.findclient_delay_passed(client):
-            logging.info('Sending findclient command for %s.' % client)
+            logger.info('Sending findclient command for %s.' % client)
             self._sendto({'cmd': 'findclient', 'client': client})
 
     def findclient_delay_passed(self, client):
@@ -128,12 +131,12 @@ class WiHome(object):
         if 'client' not in msg:
             return False
         self.txq.append(msg)
-        logging.info(self.txq)
+        logger.info(self.txq)
         return True
 
 
 # def test_rx_callback(msg):
-#     logging.info('test_rx_callback')
+#     logger.info('test_rx_callback')
 #     print(msg)
 #
 # wh = WiHome(test_rx_callback)

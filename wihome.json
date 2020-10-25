@@ -7,5 +7,22 @@
       {"homekit_label": "Switch1", "wihome_client": "wihomeDEV2", "wihome_channel": 0},
       {"homekit_label": "Switch2", "wihome_client": "wihomeDEV2", "wihome_channel": 1}
     ]
+  },
+  {
+    "accessory": "WiHomeGateOpener",
+    "instances":
+    [
+      {"homekit_label": "Gate Opener 2", "wihome_client": "wihome_go2"}
+    ]
+  },
+  {
+    "accessory": "WiHomeGateOpenerSetup",
+    "instances":
+    [
+      {"homekit_label": "Gate Opener 2 AutoCloseTime", "wihome_client": "wihome_go2", "wihome_parameter": "auto_close_time",
+       "wihome_scaling_0": 0, "wihome_scaling_100": 300},
+      {"homekit_label": "Gate Opener 2 MaxLoad", "wihome_client": "wihome_go2", "wihome_parameter": "max_imotor",
+       "wihome_scaling_0": 0, "wihome_scaling_100": 512}
+    ]
   }
 ]
